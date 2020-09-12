@@ -1,41 +1,52 @@
+//import { verificarToken } from './middlewares/autenticacion.js'
 const express = require('express');
+
 const bcrypt = require('bcrypt');
 const _ = require('underscore');
+
 const app = express();
 const Usuario = require('../models/usuario');
-const usuario = require('../models/usuario');
+//const usuario = require('../models/usuario');
+const { verificarToken } = require('../middlewares/autenticacion');
+const { verificarAdministrador } = require('../middlewares/autenticacion');
 
 
-app.get('/usuario', (req, res) => {
+app.get('/usuario', verificarToken, (req, res) => {
 
-    let desde = req.query.desde || 0;
-    desde = Number(desde);
-    let limite = req.query.limite || 5;
-    limite = Number(limite);
+        return res.json({
+            usuario: req.usuario,
+            nombre: req.usuario.nombre,
+            email: req.usuario.email,
+        })
 
-    //Usuario.find({ google: true })// retorno de objetos con condición 
-    Usuario.find({ estado: true })
-        .skip(desde)
-        .limit(limite)
-        .exec((err, usuarios) => {
-            if (err) {
-                return res.status(400).json({
-                    ok: false,
-                    err
-                });
-            }
-            Usuario.count({ estado: true }, (err, conteo) => {
-                res.json({
-                    ok: true,
-                    usuarios,
-                    usuariosTotal: conteo
+        let desde = req.query.desde || 0;
+        desde = Number(desde);
+
+        let limite = req.query.limite || 5;
+        limite = Number(limite);
+
+        //Usuario.find({ google: true })// retorno de objetos con condición 
+        Usuario.find({ estado: true })
+            .skip(desde)
+            .limit(limite)
+            .exec((err, usuarios) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        err
+                    });
+                }
+                Usuario.count({ estado: true }, (err, conteo) => {
+                    res.json({
+                        ok: true,
+                        usuarios,
+                        usuariosTotal: conteo
+                    })
                 })
             })
-
-        })
-})
-
-app.post('/usuario', (req, res) => { /// petición POST, se requiere el parámetro nombre con un valor asignado
+    })
+    //app.post('/usuario', [verificarToken,verificarAdministrador], (req, res) => {///para colocar 2 middlewares
+app.post('/usuario', verificarAdministrador, (req, res) => { /// petición POST, se requiere el parámetro nombre con un valor asignado
     let body = req.body; ///para usuar body es necesario instalar body-parser
 
     let usuario = new Usuario({
@@ -78,7 +89,7 @@ app.post('/usuario', (req, res) => { /// petición POST, se requiere el parámet
         */
 })
 
-app.put('/usuario/:id', (req, res) => { /// alta simple exp: /usuario/32
+app.put('/usuario/:id', verificarToken, (req, res) => { /// alta simple exp: /usuario/32
     let id = req.params.id;
     //let body = req.body;
     /// Se hara uso de la libreria underscore(npm install underscore), esto con el fin evitar que el usuario modifique 
@@ -105,7 +116,7 @@ app.put('/usuario/:id', (req, res) => { /// alta simple exp: /usuario/32
         */
 })
 
-app.delete('/usuario/:id', (req, res) => {
+app.delete('/usuario/:id', verificarToken, (req, res) => {
     let id = req.params.id;
     /*
     Usuario.findByIdAndRemove(id, (err, userDelete) => {        
